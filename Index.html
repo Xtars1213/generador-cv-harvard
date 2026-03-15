@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harvard CV Builder - Victor Cuesta</title>
+    <link rel="stylesheet" href="css/Style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <aside class="sidebar no-print">
+            <header>
+                <h2>CV - Creador</h2>
+                <div class="progress-container">
+                    <small>Completitud del Perfil</small>
+                    <div class="progress-bar">
+                        <div id="progress"></div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="upload-container">
+                <label for="pdf-upload" class="custom-file-upload">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span id="file-name-display">IMPORTAR HISTORIAL PDF</span>
+                    <input type="file" id="pdf-upload" accept=".pdf" onchange="displayFileName(this)">
+                </label>
+                <p class="upload-hint">Analiza tu trayectoria automáticamente</p>
+            </div>
+
+            <nav class="tab-nav">
+                <button class="tab-btn active" onclick="openTab(event, 'personal')">Personal</button>
+                <button class="tab-btn" onclick="openTab(event, 'resumen')">Perfil</button>
+                <button class="tab-btn" onclick="openTab(event, 'experiencia')">Experiencia</button>
+                <button class="tab-btn" onclick="openTab(event, 'educacion')">Educación</button>
+                <button class="tab-btn" onclick="openTab(event, 'habilidades')">Skills</button>
+                <button class="tab-btn" onclick="openTab(event, 'idiomas')">Idiomas</button>
+                <button class="tab-btn" onclick="openTab(event, 'certificaciones')">Certificados</button>
+                <button class="tab-btn" onclick="openTab(event, 'referencias')">Referencias</button>
+            </nav>
+
+            <div class="form-container">
+                <div id="personal" class="tab-content active">
+                    <div class="grid-form">
+                        <div class="input-group full-width"><label>Nombre Completo</label><input type="text"
+                                id="in-name" placeholder="Victor Manuel Cuesta Borbor"></div>
+                        <div class="input-group"><label>Email</label><input type="email" id="in-email"></div>
+                        <div class="input-group"><label>Teléfono</label><input type="text" id="in-phone"></div>
+                        <div class="input-group"><label>LinkedIn (URL)</label><input type="text" id="in-linkedin"></div>
+                        <div class="input-group"><label>GitHub / Portafolio</label><input type="text" id="in-github">
+                        </div>
+                        <div class="input-group"><label>Ubicación</label><input type="text" id="in-location"></div>
+                    </div>
+                </div>
+
+                <div id="resumen" class="tab-content">
+                    <div class="input-group"><label>Extracto Profesional</label><textarea id="in-summary"
+                            rows="12"></textarea>
+                    </div>
+                </div>
+
+                <div id="experiencia" class="tab-content">
+                    <div id="list-experiencia" class="dynamic-list"></div>
+                    <button class="btn-add" onclick="addEntry('experiencia')">+ Añadir Experiencia</button>
+                </div>
+
+                <div id="educacion" class="tab-content">
+                    <div id="list-educacion" class="dynamic-list"></div>
+                    <button class="btn-add" onclick="addEntry('educacion')">+ Añadir Educación</button>
+                </div>
+
+                <div id="habilidades" class="tab-content">
+                    <div class="input-group"><label>Técnicas (Software, Lenguajes)</label><textarea id="in-skills-tech"
+                            rows="6"></textarea></div>
+                    <div class="input-group"><label>Blandas (Soft Skills)</label><textarea id="in-skills-soft"
+                            rows="6"></textarea></div>
+                </div>
+
+                <div id="idiomas" class="tab-content">
+                    <div id="list-idiomas" class="dynamic-list"></div>
+                    <button class="btn-add" onclick="addEntry('idiomas')">+ Añadir Idioma</button>
+                </div>
+
+                <div id="certificaciones" class="tab-content">
+                    <div id="list-certificaciones" class="dynamic-list"></div>
+                    <button class="btn-add" onclick="addEntry('certificaciones')">+ Añadir Certificado</button>
+                </div>
+
+                <div id="referencias" class="tab-content">
+                    <div id="list-referencias" class="dynamic-list"></div>
+                    <button class="btn-add" onclick="addEntry('referencias')">+ Añadir Referencia /
+                        Recomendación</button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="preview-area">
+            <div id="cv-page" class="a4-page">
+                <header class="cv-header">
+                    <h1 id="out-name">NOMBRE COMPLETO</h1>
+                    <div id="out-contact" class="contact-info"></div>
+                </header>
+
+                <div class="cv-body">
+                    <section class="cv-section" id="sec-resumen">
+                        <h4>PERFIL PROFESIONAL</h4>
+                        <p id="out-summary"></p>
+                    </section>
+
+                    <section class="cv-section" id="sec-educacion">
+                        <h4>FORMACIÓN ACADÉMICA</h4>
+                        <div id="out-educacion-list"></div>
+                    </section>
+
+                    <section class="cv-section" id="sec-experiencia">
+                        <h4>EXPERIENCIA LABORAL</h4>
+                        <div id="out-experiencia-list"></div>
+                    </section>
+
+                    <section class="cv-section" id="sec-habilidades">
+                        <h4>HABILIDADES</h4>
+                        <p><strong>Técnicas:</strong> <span id="out-skills-tech"></span></p>
+                        <p><strong>Blandas:</strong> <span id="out-skills-soft"></span></p>
+                    </section>
+
+                    <section class="cv-section" id="sec-idiomas">
+                        <h4>IDIOMAS</h4>
+                        <div id="out-idiomas-list"></div>
+                    </section>
+
+                    <section class="cv-section" id="sec-certificaciones">
+                        <h4>CERTIFICACIONES</h4>
+                        <div id="out-certificaciones-list"></div>
+                    </section>
+
+                    <section class="cv-section" id="sec-referencias">
+                        <h4>REFERENCIAS</h4>
+                        <div id="out-referencias-list"></div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <button id="btn-reset" class="fab-action fab-reset no-print" title="Limpiar Formulario" onclick="resetForm()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+        </button>
+
+        <button id="btn-print" class="fab-action fab-download no-print" title="Descargar PDF">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+        </button>
+    </div>
+
+    <script src="js/pdf-handler.js"></script>
+    <script src="js/ui-update.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
