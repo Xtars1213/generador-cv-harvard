@@ -205,7 +205,8 @@ body {
 /* Secciones del CV */
 .cv-section {
     margin-bottom: 14px;
-    page-break-inside: avoid;
+    /* No forzar break-inside en secciones completas;
+       el corte se controla item a item para evitar huecos */
 }
 
 .cv-section h4 {
@@ -596,7 +597,12 @@ body {
     }
 
     .cv-section {
-        margin-bottom: 10pt !important;
+        margin-bottom: 8pt !important;
+    }
+
+    /* El último item de cada sección no deja margen extra */
+    .cv-section .cv-item:last-child {
+        margin-bottom: 0 !important;
     }
 
     .cv-item-header {
@@ -626,16 +632,26 @@ body {
     }
 
     /* ---------------------------------------------------------------
-       6. PAGINACIÓN — evitar cortes a mitad de sección
+       6. PAGINACIÓN — corte controlado a nivel de item, no de sección
        --------------------------------------------------------------- */
+
+    /* Las secciones PUEDEN romperse entre páginas;
+       solo se evita el corte dentro de un item individual */
     .cv-section {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
+        break-inside: auto !important;
+        page-break-inside: auto !important;
     }
 
+    /* Cada item NO se parte a mitad — regla universal */
     .cv-item {
         break-inside: avoid !important;
         page-break-inside: avoid !important;
+        margin-bottom: 7pt !important;
+    }
+
+    /* El último item de cualquier sección: sin margen inferior */
+    .cv-item:last-child {
+        margin-bottom: 0 !important;
     }
 
     .cv-header {
@@ -645,23 +661,7 @@ body {
         page-break-after: avoid !important;
     }
 
-    /* Permitir que secciones largas (experiencia con muchos items)
-       salten de página ENTRE items, no a la mitad de uno */
-    #sec-experiencia,
-    #sec-educacion {
-        break-inside: auto !important;
-        page-break-inside: auto !important;
-    }
-
-    /* Cada item individual NO se corta */
-    #sec-experiencia .cv-item,
-    #sec-educacion .cv-item {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-        margin-bottom: 8pt !important;
-    }
-
-    /* El título de sección nunca debe quedar solo al final de página */
+    /* El título h4 nunca queda solo al pie de página */
     .cv-section h4 {
         break-after: avoid !important;
         page-break-after: avoid !important;

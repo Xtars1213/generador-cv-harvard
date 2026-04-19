@@ -21,37 +21,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const element = document.getElementById('cv-page');
             const userName = document.getElementById('in-name').value.trim() || "CV";
 
-            // PROBLEMA: html2pdf margin aplica a TODAS las páginas incluyendo la 1ra.
-            // El elemento ya tiene padding:25.4mm, sumando doble margen en el top.
-            // SOLUCIÓN: quitar temporalmente el padding top/bottom del elemento,
-            // y dejar que html2pdf los maneje uniformemente en cada página.
+            // Quitamos el padding top/bottom del elemento para que html2pdf
+            // los gestione uniformemente en CADA página (evita doble margen en pág 1)
             element.style.paddingTop    = '0';
             element.style.paddingBottom = '0';
 
             const opt = {
-                // left/right = 0: el elemento retiene padding:25.4mm izq/der
-                // top/bottom = 25mm: html2pdf los aplica igual en todas las páginas
-                margin:   [25, 0, 25, 0],
+                // 20mm top/bottom en todas las páginas (márgenes Harvard estándar)
+                // left/right = 0: el .a4-page retiene su padding lateral de 25.4mm
+                margin:   [20, 0, 20, 0],
                 filename: `CV_${userName.replace(/\s+/g, '_')}_Harvard.pdf`,
-                image:    { type: 'jpeg', quality: 0.98 },
+                image:    { type: 'jpeg', quality: 0.99 },
                 html2canvas: {
                     scale:           2,
                     useCORS:         true,
                     letterRendering: true,
-                    logging:         false
+                    logging:         false,
+                    // Forzar que html2canvas no añada espacio extra al final
+                    windowWidth:     794  // 210mm @ 96dpi
                 },
                 jsPDF: {
                     unit:        'mm',
                     format:      'a4',
                     orientation: 'portrait'
                 },
+                // 'css' respeta break-inside:avoid de los items
+                // 'legacy' como fallback
                 pagebreak: { mode: ['css', 'legacy'] }
             };
 
             try {
                 await html2pdf().set(opt).from(element).save();
             } finally {
-                // Restaurar el padding para que la vista previa quede igual
+                // Restaurar padding para que la vista previa quede igual
                 element.style.paddingTop    = '';
                 element.style.paddingBottom = '';
             }
