@@ -147,8 +147,8 @@ window.openTab = function (event, tabId) {
 
 window.updateCV = function () {
     // 1. Datos Personales Centrados (Respetando mayúsculas/minúsculas)
-    const name = document.getElementById('in-name')?.value || "Victor Manuel Cuesta Borbor";
-    document.getElementById('out-name').innerText = name;
+    const name = document.getElementById('in-name')?.value || "";
+    document.getElementById('out-name').innerText = name || "TU NOMBRE COMPLETO";
 
     // 1.1 Titular Adicional
     const title = document.getElementById('in-title')?.value || "";
