@@ -471,40 +471,234 @@ body {
     margin-bottom: 8px;
 }
 
-/* --- MEDIA PRINT --- */
+/* ===================================================================
+   MEDIA PRINT — Optimizado para A4 / Harvard CV
+   =================================================================== */
+
+/* 1. DEFINICIÓN DE PÁGINA A4 — márgenes 1.3 cm para maximizar espacio */
+@page {
+    size: A4 portrait;
+    margin: 1.3cm;
+}
+
 @media print {
 
+    /* ---------------------------------------------------------------
+       2. OCULTAR ELEMENTOS DE INTERFAZ WEB
+       --------------------------------------------------------------- */
     .sidebar,
     .fab-action,
-    .no-print {
+    .no-print,
+    .tab-nav,
+    .upload-container,
+    .progress-container,
+    .btn-add,
+    .btn-remove {
         display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* ---------------------------------------------------------------
+       3. RESET DE LAYOUT — eliminar restricciones de pantalla
+       --------------------------------------------------------------- */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    html {
+        font-size: 10.5pt !important;
     }
 
     body {
         background: white !important;
+        color: black !important;
         height: auto !important;
         overflow: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-family: 'Times New Roman', Times, serif !important;
+        font-size: 10.5pt !important;
+        line-height: 1.35 !important;
     }
 
     .app-container {
         display: block !important;
+        width: 100% !important;
         height: auto !important;
+        overflow: visible !important;
     }
 
     .preview-area {
+        display: block !important;
         width: 100% !important;
         height: auto !important;
         overflow: visible !important;
         padding: 0 !important;
+        margin: 0 !important;
         background: white !important;
     }
 
+    /* ---------------------------------------------------------------
+       4. HOJA A4 — se expande al área imprimible completa
+       --------------------------------------------------------------- */
     .a4-page,
     #cv-page {
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 15mm !important;
         width: 100% !important;
         min-height: auto !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;         /* @page margin maneja los márgenes */
+        box-shadow: none !important;
+        outline: none !important;
+        border: none !important;
+        background: white !important;
+        font-size: 10.5pt !important;
+        line-height: 1.35 !important;
+    }
+
+    /* ---------------------------------------------------------------
+       5. TIPOGRAFÍA — unidades en pt para fidelidad de impresión
+       --------------------------------------------------------------- */
+    .cv-header h1 {
+        font-size: 17pt !important;
+        font-weight: bold !important;
+        margin-bottom: 2pt !important;
+        letter-spacing: 0.5pt !important;
+    }
+
+    .cv-header h3 {
+        font-size: 11pt !important;
+        font-weight: normal !important;
+        margin-bottom: 3pt !important;
+    }
+
+    .cv-header .contact-info {
+        font-size: 9.5pt !important;
+        line-height: 1.4 !important;
+        color: #111 !important;
+    }
+
+    .cv-header {
+        text-align: center !important;
+        margin-bottom: 8pt !important;
+        padding-bottom: 6pt !important;
+        border-bottom: 1.5pt solid black !important;
+    }
+
+    .cv-section h4 {
+        font-size: 11pt !important;
+        font-weight: bold !important;
+        text-transform: uppercase !important;
+        margin: 0 0 4pt 0 !important;
+        padding-bottom: 2pt !important;
+        border-bottom: 1.5pt solid black !important;
+    }
+
+    .cv-section {
+        margin-bottom: 10pt !important;
+    }
+
+    .cv-item-header {
+        font-size: 10.5pt !important;
+        font-weight: bold !important;
+    }
+
+    .cv-item-sub {
+        font-size: 10pt !important;
+        font-style: italic !important;
+    }
+
+    .cv-item-desc,
+    .cv-item-desc p,
+    .cv-item-desc li {
+        font-size: 10pt !important;
+        line-height: 1.3 !important;
+    }
+
+    .cv-item-desc ul {
+        margin: 2pt 0 !important;
+        padding-left: 16pt !important;
+    }
+
+    .cv-item-desc li {
+        margin-bottom: 1pt !important;
+    }
+
+    /* ---------------------------------------------------------------
+       6. PAGINACIÓN — evitar cortes a mitad de sección
+       --------------------------------------------------------------- */
+    .cv-section {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    .cv-item {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    .cv-header {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    /* Permitir que secciones largas (experiencia con muchos items)
+       salten de página ENTRE items, no a la mitad de uno */
+    #sec-experiencia,
+    #sec-educacion {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+    }
+
+    /* Cada item individual NO se corta */
+    #sec-experiencia .cv-item,
+    #sec-educacion .cv-item {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        margin-bottom: 8pt !important;
+    }
+
+    /* El título de sección nunca debe quedar solo al final de página */
+    .cv-section h4 {
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    /* ---------------------------------------------------------------
+       7. ESTRUCTURA FLEX/GRID — preservar layout en impresión
+       --------------------------------------------------------------- */
+    .cv-item-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: baseline !important;
+    }
+
+    .cv-body {
+        display: block !important;
+    }
+
+    /* ---------------------------------------------------------------
+       8. LINKS — mostrar URLs para referencia impresa
+       --------------------------------------------------------------- */
+    a {
+        color: black !important;
+        text-decoration: none !important;
+    }
+
+    /* ---------------------------------------------------------------
+       9. LIMPIEZA DE ARTEFACTOS VISUALES DE PANTALLA
+       --------------------------------------------------------------- */
+    .preserve-whitespace {
+        white-space: pre-wrap !important;
+        word-wrap: break-word !important;
+    }
+
+    /* Eliminar indicador rojo de overflow que solo sirve en pantalla */
+    #cv-page {
+        box-shadow: none !important;
+        outline: none !important;
     }
 }
