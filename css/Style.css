@@ -205,8 +205,10 @@ body {
 /* Secciones del CV */
 .cv-section {
     margin-bottom: 14px;
-    /* No forzar break-inside en secciones completas;
-       el corte se controla item a item para evitar huecos */
+    /* html2pdf lee estilos de pantalla (no @media print), por eso
+       las reglas de page-break deben estar aqui tambien */
+    break-inside:       auto;
+    page-break-inside:  auto;
 }
 
 .cv-section h4 {
@@ -216,12 +218,18 @@ body {
     margin: 0 0 6px 0;
     padding-bottom: 2px;
     border-bottom: 1.5px solid black;
+    /* El titulo de seccion NUNCA queda solo al pie de pagina */
+    break-after:      avoid;
+    page-break-after: avoid;
 }
 
-/* Estructura de Items (Educación, Experiencia) */
+/* Estructura de Items (Educacion, Experiencia) */
 .cv-item {
     margin-bottom: 12px;
-    page-break-inside: avoid;
+    /* Ningun item individual se parte a mitad de pagina.
+       Esto aplica tanto al print del navegador como a html2pdf. */
+    break-inside:       avoid;
+    page-break-inside:  avoid;
 }
 
 .cv-item-header {
@@ -255,6 +263,31 @@ body {
 
 .cv-item-desc p {
     margin: 0;
+}
+
+/* --- CONTROL DE SALTOS PARA html2pdf ---
+   html2pdf (html2canvas) lee CSS de PANTALLA, no @media print.
+   Estas reglas evitan que secciones cortas se partan entre paginas. */
+
+/* Habilidades: seccion compacta, debe mantenerse unida */
+#sec-habilidades {
+    break-inside:      avoid;
+    page-break-inside: avoid;
+}
+
+/* Cada parrafo de skills no se corta */
+#sec-habilidades p {
+    break-inside:      avoid;
+    page-break-inside: avoid;
+    orphans: 3;
+    widows:  3;
+}
+
+/* Perfil profesional: evitar huerfanas/viudas */
+#out-summary p,
+#out-summary {
+    orphans: 3;
+    widows:  3;
 }
 
 /* --- 7. BOTONES FLOTANTES --- */
