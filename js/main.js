@@ -18,44 +18,87 @@ document.addEventListener('DOMContentLoaded', () => {
     const printBtn = document.getElementById('btn-print');
     if (printBtn) {
         printBtn.onclick = async () => {
-            const element = document.getElementById('cv-page');
-            const userName = document.getElementById('in-name').value.trim() || "CV";
+            const element   = document.getElementById('cv-page');
+            const userName  = document.getElementById('in-name').value.trim() || "CV";
 
-            // Quitamos el padding top/bottom del elemento para que html2pdf
-            // los gestione uniformemente en CADA página (evita doble margen en pág 1)
-            element.style.paddingTop    = '0';
-            element.style.paddingBottom = '0';
+            // ── CAUSA DEL SHIFTING IZQUIERDO ───────────────────────────────
+            // html2canvas captura el elemento dentro del contexto de
+            // .preview-area (que tiene overflow-y:scroll). El scrollbar
+            // consume ~17px del ancho, haciendo que .a4-page se renderice
+            // más angosto y quede descentrado en el canvas.
+            //
+            // SOLUCIÓN: mover el elemento temporalmente al <body> con
+            // un ancho fijo de 794px (= 210mm @ 96dpi), fuera de cualquier
+            // contenedor con scroll o restricciones de ancho.
+            // ──────────────────────────────────────────────────────────────
+
+            // 1. Guardar estado original
+            const originalParent      = element.parentNode;
+            const originalNextSibling = element.nextSibling;
+            const savedStyles = {
+                width:         element.style.width,
+                maxWidth:      element.style.maxWidth,
+                margin:        element.style.margin,
+                position:      element.style.position,
+                left:          element.style.left,
+                top:           element.style.top,
+                paddingTop:    element.style.paddingTop,
+                paddingBottom: element.style.paddingBottom,
+                boxShadow:     element.style.boxShadow,
+            };
+
+            // 2. Preparar el elemento en posición fija fuera del viewport
+            //    (no se ve, pero sí se renderiza correctamente)
+            element.style.width         = '794px';   // 210mm exactos @ 96dpi
+            element.style.maxWidth      = '794px';
+            element.style.margin        = '0';
+            element.style.position      = 'fixed';
+            element.style.left          = '0px';
+            element.style.top           = '-9999px'; // Fuera del viewport visible
+            element.style.paddingTop    = '0';       // html2pdf gestiona top margin
+            element.style.paddingBottom = '0';       // html2pdf gestiona bottom margin
+            element.style.boxShadow     = 'none';
+            document.body.appendChild(element);
 
             const opt = {
-                // 20mm top/bottom en todas las páginas (márgenes Harvard estándar)
-                // left/right = 0: el .a4-page retiene su padding lateral de 25.4mm
-                margin:   [20, 0, 20, 0],
+                // Márgenes simétricos: 20mm en todos los lados.
+                // Los márgenes laterales reemplazan el padding 25.4mm
+                // que se quitó temporalmente.
+                margin:   [20, 20, 20, 20],
                 filename: `CV_${userName.replace(/\s+/g, '_')}_Harvard.pdf`,
                 image:    { type: 'jpeg', quality: 0.99 },
                 html2canvas: {
-                    scale:           2,
+                    scale:           2,           // 2x = ~150dpi: nitidez óptima
                     useCORS:         true,
                     letterRendering: true,
                     logging:         false,
-                    // Forzar que html2canvas no añada espacio extra al final
-                    windowWidth:     794  // 210mm @ 96dpi
+                    width:           794,         // Forzar captura exacta de 210mm
+                    windowWidth:     794          // Viewport = exactamente A4
                 },
                 jsPDF: {
                     unit:        'mm',
                     format:      'a4',
-                    orientation: 'portrait'
+                    orientation: 'portrait',
+                    compress:    true             // PDF más pequeño
                 },
-                // 'css' respeta break-inside:avoid de los items
-                // 'legacy' como fallback
+                // 'css'    = respeta break-inside:avoid de los .cv-item
+                // 'legacy' = fallback para navegadores antiguos
                 pagebreak: { mode: ['css', 'legacy'] }
             };
 
             try {
                 await html2pdf().set(opt).from(element).save();
             } finally {
-                // Restaurar padding para que la vista previa quede igual
-                element.style.paddingTop    = '';
-                element.style.paddingBottom = '';
+                // 3. Restaurar el elemento a su posición original exacta
+                if (originalNextSibling) {
+                    originalParent.insertBefore(element, originalNextSibling);
+                } else {
+                    originalParent.appendChild(element);
+                }
+                // Restaurar todos los estilos guardados
+                Object.entries(savedStyles).forEach(([prop, val]) => {
+                    element.style[prop] = val;
+                });
             }
         };
     }

@@ -550,12 +550,15 @@ body {
         max-width: none !important;
         margin: 0 !important;
         padding: 0 !important;         /* @page margin maneja los márgenes */
+        box-sizing: border-box !important; /* garantizar que padding no desborde */
         box-shadow: none !important;
         outline: none !important;
         border: none !important;
         background: white !important;
         font-size: 10.5pt !important;
         line-height: 1.35 !important;
+        float: none !important;        /* prevenir herencia de float */
+        position: static !important;   /* restaurar si JS la modificó */
     }
 
     /* ---------------------------------------------------------------
@@ -665,6 +668,34 @@ body {
     .cv-section h4 {
         break-after: avoid !important;
         page-break-after: avoid !important;
+    }
+
+    /* ---------------------------------------------------------------
+       6b. CONTROL DE CORTE DE PÁRRAFOS EN PERFIL PROFESIONAL
+           y otras secciones de texto corrido
+       --------------------------------------------------------------- */
+
+    /* El párrafo del perfil completo no se corta a mitad de línea */
+    #out-summary p,
+    #out-summary {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        orphans: 3 !important;   /* mínimo de líneas al pie de página */
+        widows:  3 !important;   /* mínimo de líneas al inicio de página */
+    }
+
+    /* Cada línea de habilidades (Skill) no se corta */
+    #sec-habilidades p {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    /* La info de contacto nunca se divide */
+    .cv-header .contact-info {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
     }
 
     /* ---------------------------------------------------------------
