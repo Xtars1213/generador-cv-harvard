@@ -11,98 +11,90 @@ document.addEventListener('DOMContentLoaded', () => {
         formContainer.addEventListener('input', () => {
             if (window.updateCV) window.updateCV();
             updateProgressBar();
-            saveData(); // Ahora guarda TODO
+            saveData();
         });
     }
 
+    // ── EXPORTAR PDF ────────────────────────────────────────────────────
     const printBtn = document.getElementById('btn-print');
     if (printBtn) {
         printBtn.onclick = async () => {
-            const element   = document.getElementById('cv-page');
-            const userName  = document.getElementById('in-name').value.trim() || "CV";
+            const element  = document.getElementById('cv-page');
+            const userName = document.getElementById('in-name').value.trim() || 'CV';
 
-            // ── CAUSA DEL SHIFTING IZQUIERDO ───────────────────────────────
-            // html2canvas captura el elemento dentro del contexto de
-            // .preview-area (que tiene overflow-y:scroll). El scrollbar
-            // consume ~17px del ancho, haciendo que .a4-page se renderice
-            // más angosto y quede descentrado en el canvas.
+            // ¿Por qué usamos onclone?
+            // html2canvas captura el elemento dentro del contexto del DOM real,
+            // donde .preview-area tiene overflow-y:scroll y el scrollbar consume
+            // ~17px del ancho, haciendo que .a4-page quede descentrado en el canvas.
             //
-            // SOLUCIÓN: mover el elemento temporalmente al <body> con
-            // un ancho fijo de 794px (= 210mm @ 96dpi), fuera de cualquier
-            // contenedor con scroll o restricciones de ancho.
-            // ──────────────────────────────────────────────────────────────
+            // Si usamos position:fixed/top:-9999px el canvas sale en blanco (el
+            // elemento queda fuera del viewport visible para html2canvas).
+            //
+            // onclone es el callback OFICIAL de html2canvas: recibe una copia
+            // interna del documento ANTES de renderizarlo.  Ahí ajustamos el
+            // layout sin tocar el DOM visible ni mover el elemento.
 
-            // 1. Guardar estado original
-            const originalParent      = element.parentNode;
-            const originalNextSibling = element.nextSibling;
-            const savedStyles = {
-                width:         element.style.width,
-                maxWidth:      element.style.maxWidth,
-                margin:        element.style.margin,
-                position:      element.style.position,
-                left:          element.style.left,
-                top:           element.style.top,
-                paddingTop:    element.style.paddingTop,
-                paddingBottom: element.style.paddingBottom,
-                boxShadow:     element.style.boxShadow,
-            };
-
-            // 2. Preparar el elemento en posición fija fuera del viewport
-            //    (no se ve, pero sí se renderiza correctamente)
-            element.style.width         = '794px';   // 210mm exactos @ 96dpi
-            element.style.maxWidth      = '794px';
-            element.style.margin        = '0';
-            element.style.position      = 'fixed';
-            element.style.left          = '0px';
-            element.style.top           = '-9999px'; // Fuera del viewport visible
-            element.style.paddingTop    = '0';       // html2pdf gestiona top margin
-            element.style.paddingBottom = '0';       // html2pdf gestiona bottom margin
-            element.style.boxShadow     = 'none';
-            document.body.appendChild(element);
+            // Solo quitamos padding top/bottom; html2pdf los añade uniformemente
+            // en cada página mediante su opción margin.
+            element.style.paddingTop    = '0';
+            element.style.paddingBottom = '0';
 
             const opt = {
-                // Márgenes simétricos: 20mm en todos los lados.
-                // Los márgenes laterales reemplazan el padding 25.4mm
-                // que se quitó temporalmente.
-                margin:   [20, 20, 20, 20],
+                // left/right = 0  →  el elemento retiene su padding lateral 25.4mm
+                // top/bottom = 20 →  margen uniforme aportado por html2pdf en cada página
+                margin:   [20, 0, 20, 0],
                 filename: `CV_${userName.replace(/\s+/g, '_')}_Harvard.pdf`,
                 image:    { type: 'jpeg', quality: 0.99 },
                 html2canvas: {
-                    scale:           2,           // 2x = ~150dpi: nitidez óptima
+                    scale:           2,       // 2× para nitidez tipográfica (~150dpi)
                     useCORS:         true,
                     letterRendering: true,
                     logging:         false,
-                    width:           794,         // Forzar captura exacta de 210mm
-                    windowWidth:     794          // Viewport = exactamente A4
+                    onclone: (clonedDoc) => {
+                        // 1. Liberar .preview-area de su scroll y ancho restringido
+                        const clonedPreview = clonedDoc.querySelector('.preview-area');
+                        if (clonedPreview) {
+                            clonedPreview.style.overflow   = 'visible';
+                            clonedPreview.style.width      = '794px'; // 210mm @ 96dpi
+                            clonedPreview.style.padding    = '0';
+                            clonedPreview.style.margin     = '0';
+                            clonedPreview.style.background = 'white';
+                        }
+                        // 2. Fijar la hoja A4 a exactamente 210mm sin margin:auto
+                        const clonedPage = clonedDoc.getElementById('cv-page');
+                        if (clonedPage) {
+                            clonedPage.style.width         = '794px'; // 210mm exactos
+                            clonedPage.style.maxWidth      = '794px';
+                            clonedPage.style.margin        = '0';     // quitar margin:auto
+                            clonedPage.style.boxShadow     = 'none';
+                            clonedPage.style.position      = 'static';
+                            clonedPage.style.paddingTop    = '0';
+                            clonedPage.style.paddingBottom = '0';
+                        }
+                    }
                 },
                 jsPDF: {
                     unit:        'mm',
                     format:      'a4',
                     orientation: 'portrait',
-                    compress:    true             // PDF más pequeño
+                    compress:    true
                 },
                 // 'css'    = respeta break-inside:avoid de los .cv-item
-                // 'legacy' = fallback para navegadores antiguos
+                // 'legacy' = fallback para navegadores sin soporte completo
                 pagebreak: { mode: ['css', 'legacy'] }
             };
 
             try {
                 await html2pdf().set(opt).from(element).save();
             } finally {
-                // 3. Restaurar el elemento a su posición original exacta
-                if (originalNextSibling) {
-                    originalParent.insertBefore(element, originalNextSibling);
-                } else {
-                    originalParent.appendChild(element);
-                }
-                // Restaurar todos los estilos guardados
-                Object.entries(savedStyles).forEach(([prop, val]) => {
-                    element.style[prop] = val;
-                });
+                // Restaurar el padding para que la vista previa quede igual
+                element.style.paddingTop    = '';
+                element.style.paddingBottom = '';
             }
         };
     }
 
+    // ── IMPORTAR PDF ────────────────────────────────────────────────────
     const uploadInput = document.getElementById('pdf-upload');
     if (uploadInput) {
         uploadInput.addEventListener('change', async (e) => {
@@ -114,10 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const data = await processPDF(file);
                 autoFillForm(data);
-                console.log("✅ Importación exitosa");
+                console.log('✅ Importación exitosa');
             } catch (err) {
-                console.error("❌ Error real de PDF:", err);
-                alert("No pudimos leer el PDF. Asegúrate de que no tenga contraseña o esté dañado.");
+                console.error('❌ Error real de PDF:', err);
+                alert('No pudimos leer el PDF. Asegúrate de que no tenga contraseña o esté dañado.');
             } finally {
                 if (btnLabel) btnLabel.innerText = file.name;
             }
@@ -125,35 +117,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ── RESET ────────────────────────────────────────────────────────────────
 window.resetForm = function () {
-    if (confirm("¿Estás seguro de limpiar todo el CV? Esta acción es irreversible.")) {
+    if (confirm('¿Estás seguro de limpiar todo el CV? Esta acción es irreversible.')) {
         localStorage.removeItem('cvData');
         location.reload();
     }
 };
 
-/**
- * Modificación en autoFillForm (js/main.js)
- */
+// ── AUTO-FILL DESDE PDF ─────────────────────────────────────────────────
 function autoFillForm(data) {
     if (!data) return;
 
     // 1. Limpiar listas para evitar duplicados
-    document.querySelectorAll('.dynamic-list').forEach(l => l.innerHTML = "");
+    document.querySelectorAll('.dynamic-list').forEach(l => l.innerHTML = '');
 
-    // 2. Cargar Información Básica [cite: 1, 2]
+    // 2. Cargar Información Básica
     const basicFields = {
-        'in-name': data.name,
-        'in-email': data.email,
-        'in-phone': data.phone,
-        'in-linkedin': data.linkedin,
-        'in-github': data.github,
-        'in-location': data.location,
-        'in-summary': data.summary,
-        'in-title': data.title,
+        'in-name':       data.name,
+        'in-email':      data.email,
+        'in-phone':      data.phone,
+        'in-linkedin':   data.linkedin,
+        'in-github':     data.github,
+        'in-location':   data.location,
+        'in-summary':    data.summary,
+        'in-title':      data.title,
         'in-show-title': data['show-title'],
-        'in-skills-tech': data['skills-tech'],
-        'in-skills-soft': data['skills-soft']
+        'in-skills-tech':data['skills-tech'],
+        'in-skills-soft':data['skills-soft']
     };
 
     for (const [id, val] of Object.entries(basicFields)) {
@@ -170,10 +161,10 @@ function autoFillForm(data) {
             window.addEntry('experiencia');
             const last = document.querySelector('#list-experiencia .dynamic-block:last-child');
             if (last) {
-                last.querySelector('.val-company').value = exp.company || exp.t1 || "";
-                last.querySelector('.val-role').value = exp.role || exp.t2 || "";
-                last.querySelector('.val-date').value = exp.date || "";
-                last.querySelector('.val-desc').value = exp.desc || "";
+                last.querySelector('.val-company').value = exp.company || exp.t1 || '';
+                last.querySelector('.val-role').value    = exp.role    || exp.t2 || '';
+                last.querySelector('.val-date').value    = exp.date    || '';
+                last.querySelector('.val-desc').value    = exp.desc    || '';
             }
         });
     }
@@ -184,10 +175,10 @@ function autoFillForm(data) {
             window.addEntry('educacion');
             const last = document.querySelector('#list-educacion .dynamic-block:last-child');
             if (last) {
-                last.querySelector('.val-school').value = edu.school || edu.t1 || "";
-                last.querySelector('.val-degree').value = edu.degree || edu.t2 || "";
-                last.querySelector('.val-end').value = edu.end || edu.date || "";
-                last.querySelector('.val-edu-desc').value = edu.desc || "";
+                last.querySelector('.val-school').value   = edu.school  || edu.t1  || '';
+                last.querySelector('.val-degree').value   = edu.degree  || edu.t2  || '';
+                last.querySelector('.val-end').value      = edu.end     || edu.date || '';
+                last.querySelector('.val-edu-desc').value = edu.desc    || '';
                 if (edu.current && last.querySelector('.val-current')) {
                     last.querySelector('.val-current').checked = true;
                 }
@@ -201,9 +192,9 @@ function autoFillForm(data) {
             window.addEntry('idiomas');
             const last = document.querySelector('#list-idiomas .dynamic-block:last-child');
             if (last) {
-                last.querySelector('.val-lang').value = lang.lang || lang.t1 || "";
+                last.querySelector('.val-lang').value = lang.lang || lang.t1 || '';
                 const levelSel = last.querySelector('.val-level');
-                if (levelSel) levelSel.value = lang.level || lang.t2 || "Nativo / Bilinguüe";
+                if (levelSel) levelSel.value = lang.level || lang.t2 || 'Nativo / Bilingüe';
                 if (lang.reading   && last.querySelector('.val-reading'))   last.querySelector('.val-reading').value   = lang.reading;
                 if (lang.writing   && last.querySelector('.val-writing'))   last.querySelector('.val-writing').value   = lang.writing;
                 if (lang.speaking  && last.querySelector('.val-speaking'))  last.querySelector('.val-speaking').value  = lang.speaking;
@@ -219,9 +210,9 @@ function autoFillForm(data) {
             window.addEntry('certificaciones');
             const last = document.querySelector('#list-certificaciones .dynamic-block:last-child');
             if (last) {
-                last.querySelector('.val-cert-name').value = cert.name || "";
-                last.querySelector('.val-cert-org').value = cert.org || "";
-                last.querySelector('.val-cert-desc').value = cert.desc || "";
+                last.querySelector('.val-cert-name').value = cert.name || '';
+                last.querySelector('.val-cert-org').value  = cert.org  || '';
+                last.querySelector('.val-cert-desc').value = cert.desc || '';
             }
         });
     }
@@ -232,9 +223,9 @@ function autoFillForm(data) {
             window.addEntry('referencias');
             const last = document.querySelector('#list-referencias .dynamic-block:last-child');
             if (last) {
-                last.querySelector('.val-ref-name').value = ref.name || "";
-                last.querySelector('.val-ref-contact').value = ref.contact || "";
-                last.querySelector('.val-ref-text').value = ref.text || "";
+                last.querySelector('.val-ref-name').value    = ref.name    || '';
+                last.querySelector('.val-ref-contact').value = ref.contact || '';
+                last.querySelector('.val-ref-text').value    = ref.text    || '';
             }
         });
     }
@@ -243,46 +234,44 @@ function autoFillForm(data) {
     if (window.updateCV) window.updateCV();
 }
 
-/**
- * Persistencia TOTAL (Ingeniería Final)
- */
+// ── PERSISTENCIA ─────────────────────────────────────────────────────────
 function saveData() {
     const data = {
-        experiencias: [],
-        educaciones: [],
-        idiomas: [],
-        certificaciones: [],
-        referencias: []
+        experiencias:   [],
+        educaciones:    [],
+        idiomas:        [],
+        certificaciones:[],
+        referencias:    []
     };
 
-    // 1. Guardar campos estáticos (Inputs y Checkboxes)
+    // 1. Guardar campos estáticos
     document.querySelectorAll('input[id^="in-"], textarea[id^="in-"]').forEach(i => {
         const key = i.id.replace('in-', '');
         data[key] = (i.type === 'checkbox') ? i.checked : i.value;
     });
 
-    // 2. Guardar Experiencias
+    // 2. Experiencias
     document.querySelectorAll('#list-experiencia .dynamic-block').forEach(b => {
         data.experiencias.push({
             company: b.querySelector('.val-company')?.value,
-            role: b.querySelector('.val-role')?.value,
-            date: b.querySelector('.val-date')?.value,
-            desc: b.querySelector('.val-desc')?.value
+            role:    b.querySelector('.val-role')?.value,
+            date:    b.querySelector('.val-date')?.value,
+            desc:    b.querySelector('.val-desc')?.value
         });
     });
 
-    // 3. Guardar Educación
+    // 3. Educación
     document.querySelectorAll('#list-educacion .dynamic-block').forEach(b => {
         data.educaciones.push({
-            school: b.querySelector('.val-school')?.value,
-            degree: b.querySelector('.val-degree')?.value,
-            end: b.querySelector('.val-end')?.value,
-            desc: b.querySelector('.val-edu-desc')?.value,
+            school:  b.querySelector('.val-school')?.value,
+            degree:  b.querySelector('.val-degree')?.value,
+            end:     b.querySelector('.val-end')?.value,
+            desc:    b.querySelector('.val-edu-desc')?.value,
             current: b.querySelector('.val-current')?.checked
         });
     });
 
-    // 4. Guardar Idiomas
+    // 4. Idiomas
     document.querySelectorAll('#list-idiomas .dynamic-block').forEach(b => {
         data.idiomas.push({
             lang:      b.querySelector('.val-lang')?.value,
@@ -291,25 +280,25 @@ function saveData() {
             writing:   b.querySelector('.val-writing')?.value,
             speaking:  b.querySelector('.val-speaking')?.value,
             listening: b.querySelector('.val-listening')?.value,
-            cert:      b.querySelector('.val-lang-cert')?.value,
+            cert:      b.querySelector('.val-lang-cert')?.value
         });
     });
 
-    // 5. Guardar Certificaciones
+    // 5. Certificaciones
     document.querySelectorAll('#list-certificaciones .dynamic-block').forEach(b => {
         data.certificaciones.push({
             name: b.querySelector('.val-cert-name')?.value,
-            org: b.querySelector('.val-cert-org')?.value,
+            org:  b.querySelector('.val-cert-org')?.value,
             desc: b.querySelector('.val-cert-desc')?.value
         });
     });
 
-    // 6. Guardar Referencias
+    // 6. Referencias
     document.querySelectorAll('#list-referencias .dynamic-block').forEach(b => {
         data.referencias.push({
-            name: b.querySelector('.val-ref-name')?.value,
+            name:    b.querySelector('.val-ref-name')?.value,
             contact: b.querySelector('.val-ref-contact')?.value,
-            text: b.querySelector('.val-ref-text')?.value
+            text:    b.querySelector('.val-ref-text')?.value
         });
     });
 
@@ -323,15 +312,15 @@ function loadData() {
             const data = JSON.parse(saved);
             // Pequeño delay para asegurar que los scripts de UI carguen sus templates
             setTimeout(() => autoFillForm(data), 200);
-        } catch (e) { console.error("Error al cargar datos."); }
+        } catch (e) { console.error('Error al cargar datos.'); }
     }
 }
 
 function updateProgressBar() {
     const inputs = document.querySelectorAll('input[id^="in-"], textarea[id^="in-"]');
     let filled = 0;
-    inputs.forEach(i => { if (i.value.trim() !== "") filled++; });
+    inputs.forEach(i => { if (i.value.trim() !== '') filled++; });
     const pct = inputs.length > 0 ? Math.round((filled / inputs.length) * 100) : 0;
     const bar = document.getElementById('progress');
-    if (bar) bar.style.width = pct + "%";
+    if (bar) bar.style.width = pct + '%';
 }
